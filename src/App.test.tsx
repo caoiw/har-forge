@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -131,7 +131,71 @@ describe('App', () => {
     const table = screen.getByRole('table', { name: /request preview/i })
     const headers = within(table).getAllByRole('columnheader').map((header) => header.textContent)
 
-    expect(headers).toEqual(['Method', 'Status', 'Host', 'Path', 'Type', 'Size', 'Time', 'Class', 'Exclude'])
+    expect(headers).toEqual(['Details', 'Method', 'Status', 'Host', 'Path', 'Type', 'Size', 'Time', 'Class', 'Exclude'])
+  })
+
+  it('expands and collapses a request to inspect decoded query params', async () => {
+    const user = userEvent.setup()
+    const sort = encodeURIComponent(
+      JSON.stringify([
+        { selector: 'eventoDataHora', desc: true },
+        { selector: 'criadoDataHora', desc: true },
+      ]),
+    )
+    const har = createHar([
+      createEntry({
+        url: `https://api.example.test/api/performance-report?pStartDate=2026-06-02T03:00:00.000Z&pEndDate=2026-07-02T03:00:00.000Z&skip=0&take=40&requireTotalCount=true&sort=${sort}&totalSummary=%5B%5D&_=1234567890`,
+      }),
+    ])
+    render(<App />)
+
+    await user.upload(screen.getByLabelText(/upload har/i), createFile(har))
+    const detailsButton = await screen.findByRole('button', {
+      name: 'Show details for GET /api/performance-report',
+    })
+
+    await user.click(detailsButton)
+
+    expect(screen.getByText('Query params')).toBeInTheDocument()
+    expect(screen.getByText('pStartDate')).toBeInTheDocument()
+    expect(screen.getByText('2026-06-02T03:00:00.000Z')).toBeInTheDocument()
+    expect(screen.getByText('requireTotalCount')).toBeInTheDocument()
+    expect(screen.getByText('true')).toBeInTheDocument()
+    expect(screen.getByText('sort')).toBeInTheDocument()
+    expect(screen.getByText(/eventoDataHora/)).toBeInTheDocument()
+    expect(screen.getByText(/criadoDataHora/)).toBeInTheDocument()
+    expect(screen.getByText('No request body.')).toBeInTheDocument()
+
+    await user.click(detailsButton)
+
+    expect(screen.queryByText('pStartDate')).not.toBeInTheDocument()
+  })
+
+  it('clears expanded request details when a new HAR is loaded', async () => {
+    const user = userEvent.setup()
+    const firstHar = createHar([
+      createEntry({
+        url: 'https://api.example.test/api/first?skip=0',
+      }),
+    ])
+    const secondHar = createHar([
+      createEntry({
+        url: 'https://api.example.test/api/second?take=40',
+      }),
+    ])
+    render(<App />)
+
+    const uploadInput = screen.getByLabelText(/upload har/i)
+    await user.upload(uploadInput, createFile(firstHar, 'first.har'))
+    await user.click(await screen.findByRole('button', { name: 'Show details for GET /api/first' }))
+
+    expect(screen.getByText('skip')).toBeInTheDocument()
+
+    await user.upload(uploadInput, createFile(secondHar, 'second.har'))
+
+    expect(await screen.findByText('/api/second')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('take')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Show details for GET /api/second' })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('excludes manually removed requests from the downloaded HAR', async () => {
@@ -199,7 +263,7 @@ describe('App', () => {
 
     await user.upload(uploadInput, createFile(secondHar, 'second.har'))
 
-    expectSummaryValue('Kept', '2')
+    await waitFor(() => expectSummaryValue('Kept', '2'))
     expectSummaryValue('Removed', '0')
     expect(screen.getByLabelText('Exclude GET /api/orders/1 from export')).not.toBeChecked()
     expect(screen.queryByLabelText('Exclude GET /api/users/1 from export')).not.toBeInTheDocument()

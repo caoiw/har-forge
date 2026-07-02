@@ -31,6 +31,7 @@ describe('summarizeHar', () => {
       category: 'api',
       isThirdParty: false,
     })
+    expect(summary.rows[0].requestDetails.queryParams).toEqual([{ name: 'token', value: '[REDACTED]' }])
   })
 
   it('classifies OPTIONS, static assets, and third-party entries', () => {

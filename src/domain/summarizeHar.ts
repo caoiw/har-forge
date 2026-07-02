@@ -1,4 +1,5 @@
 import type { HarDocument, HarEntry, HarSummary, RequestCategory } from './har.types'
+import { getRequestDetails } from './requestDetails'
 
 const STATIC_MIME_TYPES = new Set([
   'application/javascript',
@@ -151,6 +152,7 @@ export function summarizeHar(har: HarDocument, preferredBaseHost?: string): HarS
       time: entry.time ?? 0,
       category,
       isThirdParty: Boolean(baseHost && host && host !== baseHost),
+      requestDetails: getRequestDetails(entry),
     }
   })
 

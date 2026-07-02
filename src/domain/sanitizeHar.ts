@@ -1,46 +1,5 @@
 import type { HarDocument, HarEntry, HarHeader, HarPostData, HarQueryParam } from './har.types'
-
-const REDACTED = '[REDACTED]'
-
-const SENSITIVE_EXACT_KEYS = new Set([
-  'authorization',
-  'cookie',
-  'set-cookie',
-  'x-csrf-token',
-  'access_token',
-  'refresh_token',
-  'id_token',
-  'password',
-  'senha',
-  'api_key',
-  'client_secret',
-])
-
-const SENSITIVE_COMPACT_FRAGMENTS = [
-  'authorization',
-  'cookie',
-  'setcookie',
-  'csrftoken',
-  'token',
-  'password',
-  'senha',
-  'apikey',
-  'clientsecret',
-]
-
-function isSensitiveName(name: string): boolean {
-  const separatorNormalized = name
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-  const compactNormalized = separatorNormalized.replace(/_/g, '')
-
-  return (
-    SENSITIVE_EXACT_KEYS.has(separatorNormalized) ||
-    SENSITIVE_COMPACT_FRAGMENTS.some((fragment) => compactNormalized.includes(fragment))
-  )
-}
+import { REDACTED, isSensitiveName, redactJsonValue, redactNamedValue } from './sensitiveData'
 
 function cloneHar(har: HarDocument): HarDocument {
   return JSON.parse(JSON.stringify(har)) as HarDocument
@@ -56,7 +15,7 @@ function sanitizeHeaders(headers: HarHeader[] | undefined): HarHeader[] | undefi
 function sanitizeNamedValues<T extends { name: string; value?: string }>(items: T[] | undefined, redactAll = false): T[] | undefined {
   return items?.map((item) => ({
     ...item,
-    value: redactAll || isSensitiveName(item.name) ? REDACTED : item.value,
+    value: redactAll ? REDACTED : redactNamedValue(item.name, item.value),
   }))
 }
 
@@ -80,23 +39,6 @@ function sanitizeUrl(url: string): string {
   }
 }
 
-function sanitizeJsonValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeJsonValue(item))
-  }
-
-  if (!value || typeof value !== 'object') {
-    return value
-  }
-
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, nestedValue]) => [
-      key,
-      isSensitiveName(key) ? REDACTED : sanitizeJsonValue(nestedValue),
-    ]),
-  )
-}
-
 function sanitizeText(text: string | undefined, mimeType?: string): string | undefined {
   if (!text) {
     return text
@@ -113,7 +55,7 @@ function sanitizeText(text: string | undefined, mimeType?: string): string | und
   }
 
   try {
-    return JSON.stringify(sanitizeJsonValue(JSON.parse(text)))
+    return JSON.stringify(redactJsonValue(JSON.parse(text)))
   } catch {
     return text
   }

@@ -76,6 +76,20 @@ export type HarDocument = {
 
 export type RequestCategory = 'api' | 'asset' | 'preflight' | 'third-party' | 'other'
 
+export type RequestDetailParam = {
+  name: string
+  value: string
+}
+
+export type RequestDetails = {
+  queryParams: RequestDetailParam[]
+  body?: {
+    mimeType: string
+    params: RequestDetailParam[]
+    text?: string
+  }
+}
+
 export type RequestSummaryRow = {
   index: number
   method: string
@@ -88,6 +102,7 @@ export type RequestSummaryRow = {
   time: number
   category: RequestCategory
   isThirdParty: boolean
+  requestDetails: RequestDetails
 }
 
 export type HarSummary = {
