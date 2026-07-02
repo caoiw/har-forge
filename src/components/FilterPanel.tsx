@@ -75,7 +75,7 @@ export function FilterPanel({
             aria-label="Match value"
             type="text"
             value={config.value}
-            placeholder="/api/transferencias"
+            placeholder="/api/orders"
             onChange={(event) => updateConfig({ value: event.target.value })}
           />
         </label>

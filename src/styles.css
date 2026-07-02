@@ -391,7 +391,7 @@ label[for='har-file-input']:focus-within {
 
 table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1040px;
   border-collapse: collapse;
 }
 
@@ -417,6 +417,35 @@ th {
 td {
   color: var(--charcoal);
   font-size: 0.9rem;
+}
+
+.manual-remove-column,
+.manual-remove-cell {
+  width: 76px;
+  text-align: center;
+}
+
+.manual-remove-cell input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--forge);
+  cursor: pointer;
+}
+
+tr.manually-removed td {
+  color: #776f68;
+  background: rgba(183, 72, 50, 0.06);
+}
+
+tr.manually-removed .path-cell {
+  text-decoration: line-through;
+  text-decoration-color: rgba(183, 72, 50, 0.52);
+}
+
+tr.manually-removed .method-pill,
+tr.manually-removed .category-pill {
+  opacity: 0.62;
 }
 
 .mono-cell,

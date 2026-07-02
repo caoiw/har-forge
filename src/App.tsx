@@ -49,6 +49,7 @@ export default function App() {
   const [uploadError, setUploadError] = useState<string>()
   const [sanitizeSecrets, setSanitizeSecrets] = useState(true)
   const [filterConfig, setFilterConfig] = useState<FilterConfig>(DEFAULT_FILTER)
+  const [manualRemovedIndexes, setManualRemovedIndexes] = useState<Set<number>>(() => new Set())
 
   const summary = useMemo(() => (har ? summarizeHar(har, filterConfig.baseHost || undefined) : undefined), [har, filterConfig.baseHost])
   const activeBaseHost = filterConfig.baseHost || summary?.baseHost || ''
@@ -68,6 +69,14 @@ export default function App() {
     const kept = new Set(filterResult.keptIndexes)
     return summary.rows.filter((row) => kept.has(row.index))
   }, [filterResult, summary])
+  const activeManualRemovedIndexes = useMemo(() => {
+    if (!filterResult || filterResult.error) {
+      return new Set<number>()
+    }
+
+    const kept = new Set(filterResult.keptIndexes)
+    return new Set([...manualRemovedIndexes].filter((index) => kept.has(index)))
+  }, [filterResult, manualRemovedIndexes])
 
   async function handleFileSelected(file: File) {
     setFileName(file.name)
@@ -76,16 +85,32 @@ export default function App() {
     const result = parseHar(await readFileAsText(file))
     if (!result.ok) {
       setHar(undefined)
+      setManualRemovedIndexes(new Set())
       setUploadError(result.error)
       return
     }
 
     const nextSummary = summarizeHar(result.har)
     setHar(result.har)
+    setManualRemovedIndexes(new Set())
     setFilterConfig((current) => ({
       ...current,
       baseHost: nextSummary.baseHost,
     }))
+  }
+
+  function handleManualRemoveToggle(index: number) {
+    setManualRemovedIndexes((current) => {
+      const next = new Set(current)
+
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
+
+      return next
+    })
   }
 
   function handleDownload() {
@@ -93,14 +118,22 @@ export default function App() {
       return
     }
 
-    const exportHar = sanitizeSecrets ? sanitizeHar(filterResult.har) : filterResult.har
+    const exportBase = {
+      ...filterResult.har,
+      log: {
+        ...filterResult.har.log,
+        entries: filterResult.har.log.entries.filter((_entry, index) => !manualRemovedIndexes.has(filterResult.keptIndexes[index])),
+      },
+    }
+    const exportHar = sanitizeSecrets ? sanitizeHar(exportBase) : exportBase
     downloadBlob(createHarBlob(exportHar), 'clean.har')
   }
 
   const total = summary?.total ?? 0
-  const kept = filterResult?.error ? 0 : filterResult?.keptCount ?? 0
-  const removed = filterResult?.error ? 0 : filterResult?.removedCount ?? 0
-  const downloadDisabled = !filterResult || Boolean(filterResult.error) || filterResult.keptCount === 0
+  const manualRemovedActiveCount = activeManualRemovedIndexes.size
+  const kept = filterResult?.error ? 0 : (filterResult?.keptCount ?? 0) - manualRemovedActiveCount
+  const removed = filterResult?.error ? 0 : (filterResult?.removedCount ?? 0) + manualRemovedActiveCount
+  const downloadDisabled = !filterResult || Boolean(filterResult.error) || kept === 0
 
   return (
     <main className="app-shell">
@@ -129,7 +162,11 @@ export default function App() {
           disabled={downloadDisabled}
           onDownload={handleDownload}
         />
-        <RequestTable rows={keptRows} />
+        <RequestTable
+          rows={keptRows}
+          manualRemovedIndexes={activeManualRemovedIndexes}
+          onManualRemoveToggle={handleManualRemoveToggle}
+        />
       </div>
     </main>
   )

@@ -18,7 +18,8 @@ https://har-forge.pages.dev/
 - Remove static assets.
 - Remove third-party requests based on the selected base host.
 - Preview total, kept, and removed request counts.
-- Inspect kept requests in a table with method, status, host, path, type, size, time, and category.
+- Inspect post-filter requests in a table with method, status, host, path, type, size, time, and category.
+- Manually exclude individual requests from the final export.
 - Sanitize sensitive data before export.
 - Download a cleaned `clean.har` file.
 
