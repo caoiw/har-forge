@@ -4,6 +4,10 @@ HAR Forge is a local-first tool to clean, filter, and sanitize HAR files before 
 
 It is built for QA and performance workflows where a browser capture has too much noise and you only want the requests that matter before importing the HAR into k6 Studio, `har-to-k6`, Playwright, or another test tool.
 
+## Live Demo
+
+https://har-forge.pages.dev/
+
 ## Features
 
 - Upload or drag and drop a `.har` file.
