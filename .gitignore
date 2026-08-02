@@ -3,3 +3,6 @@ dist/
 coverage/
 .vite/
 *.local
+.praxis.local/
+.praxis/cache/
+.praxis/index/

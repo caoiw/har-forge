@@ -145,3 +145,15 @@ npm run build
 - Import and export reusable filter presets.
 - Better before/after reports for cleaned HAR files.
 - Example HAR files for local testing and demos.
+
+## Product identity
+
+**Turn noisy browser captures into focused evidence for debugging.**
+
+- **Primary audience:** Engineers and QA practitioners who need to inspect or share HTTP archive files safely.
+- **Problem:** Raw HAR captures are large, noisy, and can expose irrelevant or sensitive request data.
+- **Value:** HAR Forge filters and reshapes captures into smaller, purpose-specific debugging artifacts.
+- **Boundaries:** It assists inspection and redaction; it does not replace security review or observability platforms.
+- **Maturity:** MVP
+
+The canonical product profile is maintained in [.praxis/context/project.md](.praxis/context/project.md).
